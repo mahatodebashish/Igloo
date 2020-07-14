@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "550816128157",
+    "firebase_url": "https://igloo-wallpaper-lock-screen.firebaseio.com",
+    "project_id": "igloo-wallpaper-lock-screen",
+    "storage_bucket": "igloo-wallpaper-lock-screen.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:550816128157:android:9d5045951e46f2e11dc874",
+        "android_client_info": {
+          "package_name": "walley.igloo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "550816128157-8mj6r47sldbe46odt6gb9di8cj74ire2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5_udOmTqQwzBwO3pNPrBnlFzrCYfcgJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "550816128157-8mj6r47sldbe46odt6gb9di8cj74ire2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

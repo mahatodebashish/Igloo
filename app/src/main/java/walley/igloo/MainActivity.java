@@ -1,7 +1,15 @@
 package walley.igloo;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.app.AlarmManager;
+import android.app.Application;
+import android.app.PendingIntent;
 import android.app.WallpaperManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,6 +33,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -33,6 +42,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -46,6 +57,8 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Calendar;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -68,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     DisplayMetrics displayMetrics ;
     int width, height;
 
+    String status="";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,6 +89,20 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter("set-lockscreen"));
+
+      /*  Button crashButton = new Button(this);
+        crashButton.setText("Crash!");
+        crashButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                throw new RuntimeException("Test Crash"); // Force a crash
+            }
+        });
+
+        addContentView(crashButton, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));*/
 
 
         checkPermission(
@@ -86,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         wallpaperManager  = WallpaperManager.getInstance(getApplicationContext());
-        bitmapDrawable = (BitmapDrawable) imageView.getDrawable();
+      //  bitmapDrawable = ((BitmapDrawable) imageView.getDrawable());
 
 
         // Initialization Of DownLoad Button
@@ -102,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
 
         callApi();
 
-
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -111,28 +138,54 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
 
 
-                Uri imageUri = Uri.fromFile(file);
-               // imageView.setImageURI(imageUri);
+                if (!isMyServiceRunning(MyService.class)) {
 
-
-                //Convering Uri to Bitmap
-                try {
-                    InputStream is = getContentResolver().openInputStream(imageUri);
-                     myBitmap = BitmapFactory.decodeStream(is);
-                    is.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    startService(new Intent(MainActivity.this, MyService.class));
                 }
 
+                if (status.equals("1")) {
+
+                    setWallpaper();
+                }
+            }
 
 
+        });
 
-                GetScreenWidthHeight();
+
+    }
+
+    private void setWallpaper() {
+        //Folder Creating Into Phone Storage
+        dirPath = Environment.getExternalStorageDirectory() + "/Image";
+
+        fileName = "image.jpeg";
+
+        //file Creating With Folder & Fle Name
+        file = new File(dirPath, fileName);
+
+        callApi();
+
+        Uri imageUri = Uri.fromFile(file);
+        // imageView.setImageURI(imageUri);
 
 
-                wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
+        //Convering Uri to Bitmap
+        try {
+            InputStream is = getContentResolver().openInputStream(imageUri);
+            myBitmap = BitmapFactory.decodeStream(is);
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-                //setting wallpaper
+
+        GetScreenWidthHeight();
+
+
+        wallpaperManager = WallpaperManager.getInstance(MainActivity.this);
+
+        //setting wallpaper
              /*   try {
 
                     wallpaperManager.setBitmap(myBitmap);
@@ -144,17 +197,15 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 */
-                //lock screen set wallpaper
-                try {
-                    wallpaperManager.setBitmap(myBitmap, null, true, WallpaperManager.FLAG_LOCK);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        //lock screen set wallpaper
+        try {
+            // wallpaperManager.setBitmap(myBitmap, null, true, WallpaperManager.FLAG_LOCK);
+            InputStream is = getContentResolver().openInputStream(imageUri);
+            WallpaperManager.getInstance(MainActivity.this).setStream(is, null, true, WallpaperManager.FLAG_LOCK);
 
-        });
-
-
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void GetScreenWidthHeight(){
@@ -236,7 +287,8 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.stop_service) {
+            stopService(new Intent(this, MyService.class));
             return true;
         }
 
@@ -297,5 +349,36 @@ public class MainActivity extends AppCompatActivity {
                         // handle error
                     }
                 });
+    }
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+             status = intent.getStringExtra("Status");
+             if(isMyServiceRunning(MyService.class)) {
+                 if (status.equals("1")) {
+                     setWallpaper();
+                 }
+             }
+            // Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+  /*  @Override
+    protected void onDestroy() {
+        // Unregister since the activity is about to be closed.
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
+    }*/
+
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
